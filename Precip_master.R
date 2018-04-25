@@ -90,11 +90,12 @@ bycounty <- over(ia.counties, maj.muni.spdf, returnList = TRUE)
 maj.muni.planar <- spTransform( maj.muni.spdf, CRS( "+init=epsg:3347" )) 
 precip.data.planar <- spTransform( precip.data.spdf, CRS( "+init=epsg:3347" ))
 
-# Hint: Rgeos has a super easy function for finding the nearest point to a point.
-# Here is the basic form:
-nearest.precip.data <- gDistance(maj.muni.planar, precip.data.planar, byid=TRUE)
+# Nearest weather station to the outfall
+maj.muni.spdf@data$nearest.station <- apply(gDistance(maj.muni.planar, precip.data.planar, byid=TRUE), 1, which.min)
 
-maj.muni.stations <- cbind(Maj.Muni, Maj.Muni[nearest.precip.data,])
+
+maj.muni.stations <- cbind(Maj.Muni, Maj.Muni[nearest.precip.data,], 
+                      apply(nearest.precip.data, 1, function(x) sort(x, decreasing=F)[1]))
 
 
 ######################################3
@@ -109,5 +110,5 @@ usethis::edit_r_environ()
 # NOAA_KEY=your_noaa_key (without quotation marks)
 # Then save it and restart your R session and reload packages
 
-statewide.precip.2003 <- ncdc(datasetid='GHCND', locationid="FIPS:19", datatypeid = "PRCP",
-                         startdate = '2003-01-01', enddate = '2003-12-31')
+station.locations <- ncdc_stations(datasetid='GHCND', locationid="FIPS:19", datatypeid = "PRCP",
+                        limit = 1000, startdate = '2003-01-01', enddate = '2003-12-31')
