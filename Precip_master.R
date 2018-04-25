@@ -1,9 +1,13 @@
-library(plyr)
-library(dplyr)
-library(ggplot2)
-library(sp)
-library(rgdal)
-library(rgeos)
+pkgs <- c("ggmap", "rgdal", "rgeos", "maptools", "plyr", "dplyr", "tidyr", "tmap", "ggplot2", 
+       "RColorBrewer", "maptools", "maps", "sp", "raster", "rgeos",
+       "rvest", "readr", "SpatioTemporal", "rnoaa", "usethis") 
+
+# If it wants to restart R, tell it yes. The work will be saved.
+# Install the packages
+install.packages(pkgs) # warning: this may take a number of minutes
+
+# Run this code to load them into memory
+lapply(pkgs, library, character.only = TRUE)
 
 ###################################################################################
 #Precip data
@@ -108,3 +112,18 @@ bycounty <- over(ia.counties, spdf, returnList = TRUE)
 # Here is the basic form:
 library(rgeos)
 set1$nearest_in_set2 <- apply(gDistance(set1sp, set2sp, byid=TRUE), 1, which.min)
+
+
+######################################3
+# We need precip data for all of Iowa
+# Package rnoaa
+# This uses a unique key that must be requested from NOAA
+
+
+# Doing this saves it to the global environment so that you can use it in any R session
+usethis::edit_r_environ()
+# In the window that opens, paste in this:
+# NOAA_KEY=your_noaa_key (without quotation marks)
+# Then save it and restart your R session and reload packages
+
+statewide.precip <- ncdc(datasetid='PRECIP_HLY', startdate = '2010-05-01', enddate = '2010-05-10')
