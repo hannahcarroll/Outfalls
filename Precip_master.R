@@ -64,12 +64,12 @@ messy.map <- ggplot() + theme_void() +
 # out spatially.
 
 #Extract the numerical coordinates and combine by column (Lat,Long)
-coords <- cbind(Maj.Muni$Longitude, Maj.Muni$Latitude)
-coords <- cbind(precip.data$Long, precip.data$Lat)
+coords.muni <- cbind(Maj.Muni$Longitude, Maj.Muni$Latitude)
+coords.precip <- cbind(precip.data$Long, precip.data$Lat)
 
 #Turn into spacial points data frame
-maj.muni.spdf <- SpatialPointsDataFrame(coords, Maj.Muni)
-precip.data.spdf <- SpatialPointsDataFrame(coords, precip.data)
+maj.muni.spdf <- SpatialPointsDataFrame(coords.muni, Maj.Muni)
+precip.data.spdf <- SpatialPointsDataFrame(coords.precip, precip.data)
 
 #Project and set coordinate reference system
 proj4string(maj.muni.spdf) = CRS("+proj=longlat +datum=WGS84")
@@ -88,30 +88,13 @@ bycounty <- over(ia.counties, maj.muni.spdf, returnList = TRUE)
 
 #Transform to planar coordinates
 maj.muni.planar <- spTransform( maj.muni.spdf, CRS( "+init=epsg:3347" )) 
-
-
-# Hint: Rgeos has a super easy function for finding the nearest point to a point.
-# Here is the basic form:
-maj.muni.planar$data$nearest_in_precip.data.spdf <- apply(gDistance(maj.muni.planar, 
-                                               precip.data.spdf, byid=TRUE), 1, which.min)
-summary(maj.muni.planar)
-
-maj.muni.planar$data$nearest_in_precip.data.spdf
-coords <- cbind(maj.municipal$Longitude, maj.municipal$Latitude)
-maj.muni.spdf <- SpatialPointsDataFrame(coords, maj.municipal)
-
-proj4string(spdf) = CRS("+proj=longlat +datum=WGS84")
-proj4string(ia.counties) = CRS("+proj=longlat +datum=WGS84")
-# This proj4string(ia.counties) = CRS("+proj=longlat +datum=WGS84") command
-# throws an error, but it's okay - we're transforming to the same thing
-# it already was, just changing the wording a little so our identicalCRS call doesn't fail.
-
-bycounty <- over(ia.counties, spdf, returnList = TRUE)
+precip.data.planar <- spTransform( precip.data.spdf, CRS( "+init=epsg:3347" ))
 
 # Hint: Rgeos has a super easy function for finding the nearest point to a point.
 # Here is the basic form:
-library(rgeos)
-set1$nearest_in_set2 <- apply(gDistance(set1sp, set2sp, byid=TRUE), 1, which.min)
+nearest.precip.data <- gDistance(maj.muni.planar, precip.data.planar, byid=TRUE)
+
+maj.muni.stations <- cbind(Maj.Muni, Maj.Muni[nearest.precip.data,])
 
 
 ######################################3
@@ -126,4 +109,5 @@ usethis::edit_r_environ()
 # NOAA_KEY=your_noaa_key (without quotation marks)
 # Then save it and restart your R session and reload packages
 
-statewide.precip <- ncdc(datasetid='PRECIP_HLY', startdate = '2010-05-01', enddate = '2010-05-10')
+statewide.precip.2003 <- ncdc(datasetid='GHCND', locationid="FIPS:19", datatypeid = "PRCP",
+                         startdate = '2003-01-01', enddate = '2003-12-31')
