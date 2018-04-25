@@ -110,5 +110,18 @@ usethis::edit_r_environ()
 # NOAA_KEY=your_noaa_key (without quotation marks)
 # Then save it and restart your R session and reload packages
 
+# All stations in Iowa that have the GHCND dataset available
 station.locations <- ncdc_stations(datasetid='GHCND', locationid="FIPS:19", datatypeid = "PRCP",
-                        limit = 1000, startdate = '2003-01-01', enddate = '2003-12-31')
+                        limit = 1000, startdate = '1987-01-01', enddate = '2017-12-31')
+
+# Pull out the columns we need
+station.list <- station.locations$data[ ,c(4:5, 7, 9)]
+station.list <- station.list[c(2,3,1,4)]
+names(station.list) <- c("name", "id", "lat", "long")
+
+station.list <- station.list %>%
+  separate(id, c("dataset", "station.id"), ":")
+
+station.locations.all <- ggplot() + theme_void() + geom_polygon(data=ia.counties.f, 
+                                aes(x=long, y=lat, group=group), color="black", fill=NA) +
+  geom_point(data=station.list, aes(x=long, y=lat), color="green4")
