@@ -125,3 +125,20 @@ station.list <- station.list %>%
 station.locations.all <- ggplot() + theme_void() + geom_polygon(data=ia.counties.f, 
                                 aes(x=long, y=lat, group=group), color="black", fill=NA) +
   geom_point(data=station.list, aes(x=long, y=lat), color="green4")
+
+coords.stations <- cbind(station.list$long,station.list$lat)
+
+#Turn into spacial points data frame
+station.list.spdf <- SpatialPointsDataFrame(coords.stations, station.list)
+
+#Project and set coordinate reference system
+proj4string(station.list.spdf) = CRS("+proj=longlat +datum=WGS84")
+station.list.planar <- spTransform(station.list.spdf, CRS( "+init=epsg:3347" ))
+
+# Nearest weather station to the outfall
+maj.muni.spdf@data$nearest.station <- apply(gDistance(station.list.planar, maj.muni.planar, byid=TRUE), 1, which.min)
+
+
+maj.muni.stations <- cbind(Maj.Muni, Maj.Muni[nearest.precip.data,], 
+                      apply(nearest.precip.data, 1, function(x) sort(x, decreasing=F)[1]))
+
