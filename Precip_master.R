@@ -73,12 +73,8 @@ precip.data.spdf <- SpatialPointsDataFrame(coords.precip, precip.data)
 
 #Project and set coordinate reference system
 proj4string(maj.muni.spdf) = CRS("+proj=longlat +datum=WGS84")
-proj4string(ia.counties) = CRS("+proj=longlat +datum=WGS84")
+ia.counties <- spTransform(ia.counties, CRS("+proj=longlat +datum=WGS84")) 
 proj4string(precip.data.spdf) = CRS("+proj=longlat +datum=WGS84")
-
-# This proj4string(ia.counties) = CRS("+proj=longlat +datum=WGS84") command
-# throws an error, but it's okay - we're transforming to the same thing
-# it already was, just changing the wording a little so our identicalCRS call doesn't fail.
 
 # This returns a list of data frames. The empty data frames are counties with no
 # outfalls - and hence there is no need for precip data there.
