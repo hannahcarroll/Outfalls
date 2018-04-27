@@ -1,6 +1,6 @@
 pkgs <- c("ggmap", "rgdal", "rgeos", "maptools", "plyr", "dplyr", "tidyr", "tmap", "ggplot2", 
        "RColorBrewer", "maptools", "maps", "sp", "raster", "rgeos",
-       "rvest", "readr", "SpatioTemporal", "rnoaa", "usethis") 
+       "rvest", "readr", "SpatioTemporal", "rnoaa", "usethis", "devtools", "ggsn") 
 
 # If it wants to restart R, tell it yes. The work will be saved.
 # Install the packages
@@ -120,9 +120,12 @@ station.list <- station.list %>%
 
 station.locations.all <- ggplot() + theme_void() + geom_polygon(data=ia.counties.f, 
                                 aes(x=long, y=lat, group=group), color="black", fill=NA) +
-  geom_point(data=station.list, aes(x=long, y=lat), color="green4")
+  geom_point(data=station.list, aes(x=long, y=lat), color="green4") +
+  north(data=ia.counties.f) + scalebar(data=ia.counties.f, dist=50, 
+                                       dd2km = TRUE, model="WGS84", location="bottomleft") +
+  labs(title="Locations of Weather Stations") +
+  theme(plot.title = element_text(hjust = 0.5, face="bold", size=14))
 
-coords.stations <- cbind(station.list$long,station.list$lat)
 
 #Turn into spacial points data frame
 station.list.spdf <- SpatialPointsDataFrame(coords.stations, station.list)
@@ -132,9 +135,7 @@ proj4string(station.list.spdf) = CRS("+proj=longlat +datum=WGS84")
 station.list.planar <- spTransform(station.list.spdf, CRS( "+init=epsg:3347" ))
 
 # Nearest weather station to the outfall
-maj.muni.spdf@data$nearest.station <- apply(gDistance(station.list.planar, maj.muni.planar, byid=TRUE), 1, which.min)
+nearest.station <- apply(gDistance(maj.muni.planar, station.list.planar, byid=TRUE), 1, which.min)
 
-
-maj.muni.stations <- cbind(Maj.Muni, Maj.Muni[nearest.precip.data,], 
-                      apply(nearest.precip.data, 1, function(x) sort(x, decreasing=F)[1]))
-
+test <- cbind(maj.muni.planar@data, station.list.planar@data$station.id,  
+                   apply(nearest.station, 1, function(x) sort(x, decreasing=F)[1]))
