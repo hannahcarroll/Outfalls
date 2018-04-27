@@ -1,6 +1,6 @@
 pkgs <- c("ggmap", "rgdal", "rgeos", "maptools", "plyr", "dplyr", "tidyr", "tmap", "ggplot2", 
        "RColorBrewer", "maptools", "maps", "sp", "raster", "rgeos",
-       "rvest", "readr", "SpatioTemporal", "rnoaa", "usethis") 
+       "rvest", "readr", "SpatioTemporal", "rnoaa", "usethis", "devtools", "ggsn") 
 
 # If it wants to restart R, tell it yes. The work will be saved.
 # Install the packages
@@ -73,12 +73,8 @@ precip.data.spdf <- SpatialPointsDataFrame(coords.precip, precip.data)
 
 #Project and set coordinate reference system
 proj4string(maj.muni.spdf) = CRS("+proj=longlat +datum=WGS84")
-proj4string(ia.counties) = CRS("+proj=longlat +datum=WGS84")
+ia.counties <- spTransform(ia.counties, CRS("+proj=longlat +datum=WGS84")) 
 proj4string(precip.data.spdf) = CRS("+proj=longlat +datum=WGS84")
-
-# This proj4string(ia.counties) = CRS("+proj=longlat +datum=WGS84") command
-# throws an error, but it's okay - we're transforming to the same thing
-# it already was, just changing the wording a little so our identicalCRS call doesn't fail.
 
 # This returns a list of data frames. The empty data frames are counties with no
 # outfalls - and hence there is no need for precip data there.
@@ -110,5 +106,36 @@ usethis::edit_r_environ()
 # NOAA_KEY=your_noaa_key (without quotation marks)
 # Then save it and restart your R session and reload packages
 
+# All stations in Iowa that have the GHCND dataset available
 station.locations <- ncdc_stations(datasetid='GHCND', locationid="FIPS:19", datatypeid = "PRCP",
-                        limit = 1000, startdate = '2003-01-01', enddate = '2003-12-31')
+                        limit = 1000, startdate = '1987-01-01', enddate = '2017-12-31')
+
+# Pull out the columns we need
+station.list <- station.locations$data[ ,c(4:5, 7, 9)]
+station.list <- station.list[c(2,3,1,4)]
+names(station.list) <- c("name", "id", "lat", "long")
+
+station.list <- station.list %>%
+  separate(id, c("dataset", "station.id"), ":")
+
+station.locations.all <- ggplot() + theme_void() + geom_polygon(data=ia.counties.f, 
+                                aes(x=long, y=lat, group=group), color="black", fill=NA) +
+  geom_point(data=station.list, aes(x=long, y=lat), color="green4") +
+  north(data=ia.counties.f) + scalebar(data=ia.counties.f, dist=50, 
+                                       dd2km = TRUE, model="WGS84", location="bottomleft") +
+  labs(title="Locations of Weather Stations") +
+  theme(plot.title = element_text(hjust = 0.5, face="bold", size=14))
+
+
+#Turn into spacial points data frame
+station.list.spdf <- SpatialPointsDataFrame(coords.stations, station.list)
+
+#Project and set coordinate reference system
+proj4string(station.list.spdf) = CRS("+proj=longlat +datum=WGS84")
+station.list.planar <- spTransform(station.list.spdf, CRS( "+init=epsg:3347" ))
+
+# Nearest weather station to the outfall
+nearest.station <- apply(gDistance(maj.muni.planar, station.list.planar, byid=TRUE), 1, which.min)
+
+test <- cbind(maj.muni.planar@data, station.list.planar@data$station.id,  
+                   apply(nearest.station, 1, function(x) sort(x, decreasing=F)[1]))
