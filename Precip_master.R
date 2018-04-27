@@ -80,20 +80,6 @@ proj4string(precip.data.spdf) = CRS("+proj=longlat +datum=WGS84")
 # outfalls - and hence there is no need for precip data there.
 bycounty <- over(ia.counties, maj.muni.spdf, returnList = TRUE)
 
-# For the point-to-point operation:
-
-#Transform to planar coordinates
-maj.muni.planar <- spTransform( maj.muni.spdf, CRS( "+init=epsg:3347" )) 
-precip.data.planar <- spTransform( precip.data.spdf, CRS( "+init=epsg:3347" ))
-
-# Nearest weather station to the outfall
-maj.muni.spdf@data$nearest.station <- apply(gDistance(maj.muni.planar, precip.data.planar, byid=TRUE), 1, which.min)
-
-
-maj.muni.stations <- cbind(Maj.Muni, Maj.Muni[nearest.precip.data,], 
-                      apply(nearest.precip.data, 1, function(x) sort(x, decreasing=F)[1]))
-
-
 ######################################3
 # We need precip data for all of Iowa
 # Package rnoaa
@@ -115,8 +101,9 @@ station.list <- station.locations$data[ ,c(4:5, 7, 9)]
 station.list <- station.list[c(2,3,1,4)]
 names(station.list) <- c("name", "id", "lat", "long")
 
-station.list <- station.list %>%
-  separate(id, c("dataset", "station.id"), ":")
+# This is no longer needed
+#station.list <- station.list %>%
+#  separate(id, c("dataset", "station.id"), ":")
 
 station.locations.all <- ggplot() + theme_void() + geom_polygon(data=ia.counties.f, 
                                 aes(x=long, y=lat, group=group), color="black", fill=NA) +
@@ -127,15 +114,59 @@ station.locations.all <- ggplot() + theme_void() + geom_polygon(data=ia.counties
   theme(plot.title = element_text(hjust = 0.5, face="bold", size=14))
 
 
-#Turn into spacial points data frame
+#Turn into spatial points data frame
 station.list.spdf <- SpatialPointsDataFrame(coords.stations, station.list)
 
 #Project and set coordinate reference system
 proj4string(station.list.spdf) = CRS("+proj=longlat +datum=WGS84")
-station.list.planar <- spTransform(station.list.spdf, CRS( "+init=epsg:3347" ))
 
-# Nearest weather station to the outfall
-nearest.station <- apply(gDistance(maj.muni.planar, station.list.planar, byid=TRUE), 1, which.min)
+# Code from: https://www.nceas.ucsb.edu/scicomp/usecases/AssignClosestPointsToPoints
+#  Define these vectors, used in the loop.
 
-test <- cbind(maj.muni.planar@data, station.list.planar@data$station.id,  
-                   apply(nearest.station, 1, function(x) sort(x, decreasing=F)[1]))
+   closest.station.vec <- vector(mode = "numeric",length = nrow(maj.muni.spdf))
+   min.dist.vec     <- vector(mode = "numeric",length = nrow(maj.muni.spdf))
+
+# Get the vector index of the weather station closest to each outfall.
+# Use the spDistsN1 function to compute the distance vector between each
+# field station site and all of the temperature stations. Then, find and
+# retain the actual temperature, and the index of the closest temperature
+# to each transect station.
+#
+# spDistsN1 usage: spDistsN1(pointList, pointToMatch, longlat)
+#
+# where:
+#         pointList   : List of candidate points.
+#         pointToMatch: Single point for which we seek the closest point in pointList.
+#         longlat     : TRUE  computes Great Circle distance in km,
+#                       FALSE computes Euclidean distance in units of input geographic coordinates
+#
+# We use Great Circle distance to increase distance calculation accuracy at high latitudes
+# See the discussion of distance units in the header portion of this file
+#
+# minDistVec stores distance from the closest temperature station to each density measurement point.
+# closestSiteVec stores the index of the closest temperature station to each density measurement point.
+#
+   for (i in 1 : nrow(maj.muni.spdf))
+   {
+      distVec <- spDistsN1(station.list.spdf,maj.muni.spdf[i,],longlat = TRUE)
+     min.dist.vec[i] <- min(distVec)
+      closest.station.vec[i] <- which.min(distVec)
+   }
+#
+# Create the Temperature Assignment table: merge the temperature point list with the transect point list
+# into a five-column table by merging the temperature point and transect point lists.
+#
+   PointAssignstation <- as(station.list.spdf[closest.station.vec,]$id,"character")
+   FinalTable = data.frame(coordinates(maj.muni.spdf),maj.muni.spdf,
+                                    closest.station.vec,min.dist.vec,PointAssignstation)
+
+# Now get the data:
+stations <- as.list(unique(PointAssignstation))   
+data.years <- c(seq(as.Date("1987/01/01"), by="day", length.out = 11324))
+tic()
+ for (i in 1:length(data.years))
+ { precip <- ncdc(datasetid='GHCND', datatypeid = "PRCP", stationid = stations[1:99],
+                        limit = 1000, startdate = data.years[i], enddate = data.years[i+1])
+   
+ }
+  toc()
