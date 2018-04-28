@@ -162,11 +162,14 @@ proj4string(station.list.spdf) = CRS("+proj=longlat +datum=WGS84")
 
 # Now get the data:
 stations <- as.list(unique(PointAssignstation))   
-data.years <- c(seq(as.Date("1987/01/01"), by="day", length.out = 11324))
+data.years <- c(seq(as.Date("1987-01-01"), by="day", length.out = 11324))
+
+precip <- list()
 tic()
  for (i in 1:length(data.years))
- { precip <- ncdc(datasetid='GHCND', datatypeid = "PRCP", stationid = stations[1:99],
-                        limit = 1000, startdate = data.years[i], enddate = data.years[i+1])
-   
+ { precip[i] <- ncdc(datasetid='GHCND', datatypeid = "PRCP", stationid = stations[1:99],
+                        limit = 1000, startdate = paste(data.years[i]), enddate = paste(data.years[i]))
+        Sys.sleep(0.2)
  }
   toc()
+
