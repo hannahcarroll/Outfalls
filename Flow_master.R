@@ -11,6 +11,7 @@ library(plyr)
 
 #Save as .csv
 #write.csv(daily.df, "daily flow.csv")
+daily.flow <- read.csv(file="daily flow.csv", header=TRUE)
 
 #Create data frame for monthly data
 #file.list2 <- list.files(pattern = '*.xlsx')
@@ -19,3 +20,5 @@ library(plyr)
 
 #Save as .csv
 #write.csv(monthly.df, "monthly flow.csv")
+
+monthly.flow <- read.csv(file="monthly flow.csv", header=TRUE)
