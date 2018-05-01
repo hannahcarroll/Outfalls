@@ -36,7 +36,7 @@ lidar.df$MAP[lidar.df$MAP == 0.0] <- NA
 
 #Create Iowa basemap
 basemap <- ggplot() + theme_void() + geom_raster(data=lidar.df, aes(x=long, y=lat, fill=MAP)) +
-  scale_fill_gradient2(low="black", mid="goldenrod4", high="bisque1", midpoint=179.1, 
+  scale_fill_gradient2(low="#000000", mid="#969696", high="#ffffff", midpoint=179.1, 
                        na.value = NA, limits=c(170,188.2)) + theme(legend.position = "none")
 basemap
 
@@ -44,18 +44,36 @@ basemap
 Maj.Muni <- read.csv("Major_Municipal_Outfalls.csv")
 
 #Build map with points of 103 facilities
-Outfall.Loc <- basemap +geom_polygon(data=IowaCounties.F, aes(x=long, y=lat, group=group), 
-                                     color=alpha("black", 0.2), fill = NA) +
-  geom_point(data=Maj.Muni, aes(x=Longitude, y=Latitude)) + 
-  geom_text(data=Maj.Muni, aes(x=Longitude, y=Latitude, label=Facility.Name), size=3, 
-            check_overlap = TRUE) 
+Outfall.Loc <- basemap + geom_polygon(data=IowaCounties.F, aes(x=long, y=lat, group=group), 
+                                      color=alpha("black", 0.2), fill = NA) +
+  geom_point(data=Maj.Muni, aes(x=Longitude, y=Latitude)) + labs(title="") + 
+  theme(plot.title = element_text(hjust = 0.5, face="bold", size=24)) + 
+  north(data=ia.counties.f) + scalebar(data=ia.counties.f, dist=50,
+                            dd2km = TRUE, model="WGS84", location="bottomleft") 
   
 Outfall.Loc
+ggsave(file = "Facilities.jpg", dpi = 1200, scale = 1.5)
 
-#Safe map as image
-ggsave(file = "IA_103_MajorMuniciapalFacilitiesw/names.jpg", dpi = 1200, scale = 1.5)
+#Build map with weather stations
+Station.Loc <- basemap + geom_polygon(data=IowaCounties.F, aes(x=long, y=lat, group=group), 
+                                      color=alpha("black", 0.2), fill = NA) +
+  geom_point(data=station.list, aes(x=long, y=lat), color="#084081") +
+  north(data=ia.counties.f) + scalebar(data=ia.counties.f, dist=50, 
+                                       dd2km = TRUE, model="WGS84", location="bottomleft") +
+  labs(title="Locations of Weather Stations") +
+  theme(plot.title = element_text(hjust = 0.5, face="bold", size=14))
 
+ggsave(file = "WeatherStationsblue.jpg", dpi = 1200, scale = 1.5)
 
+#Build map with both facilitlies and weather stations
+Combined.Loc <- basemap + geom_polygon(data=IowaCounties.F, aes(x=long, y=lat, group=group), 
+                                      color=alpha("black", 0.2), fill = NA) +
+  geom_point (data=station.list, aes(x=long, y=lat), fill = NA) +
+  geom_point(data=Maj.Muni, aes(x=Longitude, y=Latitude)) + labs(title="") + 
+  theme(plot.title = element_text(hjust = 0.5, face="bold", size=24)) + 
+  north(data=ia.counties.f) + scalebar(data=ia.counties.f, dist=50,
+                                       dd2km = TRUE, model="WGS84", location="bottomleft") +
+  scale_color_manual(values=c("#0868ac","black"))
 
-
+ggsave(file = "FacilitiesandWeatherStations.jpg", dpi = 1200, scale = 1.5)
 
