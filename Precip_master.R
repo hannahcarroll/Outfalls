@@ -162,14 +162,66 @@ proj4string(station.list.spdf) = CRS("+proj=longlat +datum=WGS84")
 
 # Now get the data:
 stations <- as.list(unique(PointAssignstation))   
-data.years <- c(seq(as.Date("1987-01-01"), by="day", length.out = 11324))
 
-precip <- list()
+# Generate lists of ISO formatted dates for both daily and monthly flow data
+# length.out corresponds to the number of days or months from the date of the first
+# record in the corresponding outfall datset to the last.
+dates.daily <- c(seq(as.Date("2003-09-01"), by="day", length.out = 5267))
+dates.monthly <- c(seq(as.Date("1987-01-01"), by="month", length.out = 373))
+
+# Initialie variables (function needs something blank to write into)
+precip.daily <- NULL
+precip.monthly <- NULL
+
+# Length of the lists of dates on lines 169 and 170
+vals.monthly <- 1:373
+vals.daily <- 1:5267
+
+# A variable describing the lengths
+n.m    <- length(vals.monthly)
+n.d <- length(vals.daily)
+
+# The cool bit. This code generates a unique name for each dataset we call from NOAA
+# paste means "make words out of this instead of calling an object"
+data.month  <- paste("precip.monthly",    1:n.m,     sep="")
+data.day <- paste("precip.daily", 1:n.d, sep="")
+
+# Monthly:
 tic()
- for (i in 1:length(data.years))
- { precip[i] <- ncdc(datasetid='GHCND', datatypeid = "PRCP", stationid = stations[1:99],
-                        limit = 1000, startdate = paste(data.years[i]), enddate = paste(data.years[i]))
-        Sys.sleep(0.2)
+precip <- NULL
+ for (i in 1:length(dates.monthly))
+ { precip <- try(ncdc(datasetid='GHCND', datatypeid = "PRCP", stationid = stations[1:99],
+                        limit = 1000, startdate = paste(dates.monthly[i]), 
+                     enddate = paste(dates.monthly[i]), includemetadata=FALSE))
+        assign(data.month[i], precip)
+ Sys.sleep(0.2)
  }
-  toc()
+# We can use faster code now that we're done with ftp
+precip.monthly.list <- lapply(ls(pattern="precip.monthly[0-9]+"), function(x) get(x))
+monthly.precip.data <- lapply(precip.monthly.list, function (x) x["data"])
+monthly.precip.df <- ldply(monthly.precip.data, data.frame)
+write.csv(x=monthly.precip.df, file="monthlyprecipdata.csv", row.names = FALSE)
+     rm(list=(paste(data.month)))
+     rm(monthly.precip.data)
+     rm(precip.monthly.list)
+toc()
 
+# Daily:
+tic()
+precip <- NULL
+ for (i in 1:length(dates.daily))
+ { precip <- try(ncdc(datasetid='GHCND', datatypeid = "PRCP", stationid = stations[1:99],
+                        limit = 1000, startdate = paste(dates.daily[i]), 
+                     enddate = paste(dates.daily[i]), includemetadata=FALSE))
+        assign(data.day[i], precip)
+ Sys.sleep(0.2)
+ }
+# We can use faster code now that we're done with ftp
+precip.daily.list <- lapply(ls(pattern="precip.daily[0-9]+"), function(x) get(x))
+daily.precip.data <- lapply(precip.daily.list, function (x) x["data"])
+daily.precip.df <- ldply(daily.precip.data, data.frame)
+write.csv(x=daily.precip.df, file="dailyprecipdata.csv", row.names = FALSE)
+     rm(list=(paste(data.day)))
+     rm(daily.precip.data)
+     rm(precip.daily.list)
+toc()
