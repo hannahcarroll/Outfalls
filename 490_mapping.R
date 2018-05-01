@@ -35,9 +35,9 @@ lidar.df$MAP[lidar.df$MAP == 0] <- NA
 lidar.df$MAP[lidar.df$MAP == 0.0] <- NA
 
 #Create Iowa basemap
-basemap <- ggplot() + theme_void() + geom_raster(data=lidar.df, aes(x=long, y=lat, fill=MAP)) +
+basemap <- ggplot() + theme_void(legend=true) + geom_raster(data=lidar.df, aes(x=long, y=lat, fill=MAP)) +
   scale_fill_gradient2(low="#000000", mid="#969696", high="#ffffff", midpoint=179.1, 
-                       na.value = NA, limits=c(170,188.2)) + theme(legend.position = "none")
+                       na.value = NA, limits=c(170,188.2)) + theme(legend.position = "bottom")
 basemap
 
 #Read in modified list of 103 major municipal facilities
@@ -68,12 +68,12 @@ ggsave(file = "WeatherStationsblue.jpg", dpi = 1200, scale = 1.5)
 #Build map with both facilitlies and weather stations
 Combined.Loc <- basemap + geom_polygon(data=IowaCounties.F, aes(x=long, y=lat, group=group), 
                                       color=alpha("black", 0.2), fill = NA) +
-  geom_point (data=station.list, aes(x=long, y=lat), fill = NA) +
-  geom_point(data=Maj.Muni, aes(x=Longitude, y=Latitude)) + labs(title="") + 
+  geom_point (data=station.list, aes(x=long, y=lat), color="#0868ac", fill = NA) +
+  geom_point(data=Maj.Muni, aes(x=Longitude, y=Latitude), color=alpha("black")) + labs(title="") + 
   theme(plot.title = element_text(hjust = 0.5, face="bold", size=24)) + 
   north(data=ia.counties.f) + scalebar(data=ia.counties.f, dist=50,
                                        dd2km = TRUE, model="WGS84", location="bottomleft") +
-  scale_color_manual(values=c("#0868ac","black"))
+  scale_color_manual(values=c("#0868ac","black"),labels=c("Weather Stations","Facility Locations"))
 
 ggsave(file = "FacilitiesandWeatherStations.jpg", dpi = 1200, scale = 1.5)
 
